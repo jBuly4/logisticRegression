@@ -46,12 +46,12 @@ class LogisticRegression:
             # Hint: Use np.random.choice to generate indices. Sampling with         #
             # replacement is faster than sampling without replacement.              #
             #########################################################################
-
-
+            batch_indexes = np.random.choice(num_train, batch_size, replace=True)
+            X_batch = X[batch_indexes]
+            y_batch = y[batch_indexes]
             #########################################################################
             #                       END OF YOUR CODE                                #
             #########################################################################
-
             # evaluate loss and gradient
             loss, gradW = self.loss(X_batch, y_batch, reg)
             self.loss_history.append(loss)
@@ -60,8 +60,9 @@ class LogisticRegression:
             # TODO:                                                                 #
             # Update the weights using the gradient and the learning rate.          #
             #########################################################################
-
-
+            # gradW shows way of most increasing value of loss func then we go in
+            # opposite direction
+            self.w -= learning_rate * gradW
             #########################################################################
             #                       END OF YOUR CODE                                #
             #########################################################################
@@ -91,9 +92,14 @@ class LogisticRegression:
         # Implement this method. Store the probabilities of classes in y_proba.   #
         # Hint: It might be helpful to use np.vstack and np.sum                   #
         ###########################################################################
+        scores = X.dot(self.w)
+        probability_class_1 = 1.0 / (1.0 + np.exp(-scores))
+        probability_class_0 = 1 - probability_class_1
 
-
-
+        # transposing probabilities
+        y_proba = np.vstack((probability_class_0, probability_class_1)).T
+        # now the first column contains the probabilities of samples of 0 class,
+        # second is of 1 class
         ###########################################################################
         #                           END OF YOUR CODE                              #
         ###########################################################################
@@ -116,9 +122,9 @@ class LogisticRegression:
         # TODO:                                                                   #
         # Implement this method. Store the predicted labels in y_pred.            #
         ###########################################################################
-        y_proba = self.predict_proba(X, append_bias=True)
-        y_pred = ...
-
+        y_proba_class_1 = self.predict_proba(X, append_bias=True)[:, 1]
+        # if the probability greater than 0.5 then predict class 1, otherwise - 0
+        y_pred = np.where(y_proba_class_1 > 0.5, 1, 0)
         ###########################################################################
         #                           END OF YOUR CODE                              #
         ###########################################################################
@@ -134,21 +140,31 @@ class LogisticRegression:
         - loss as single float
         - gradient with respect to weights w; an array of same shape as w
         """
-        dw = np.zeros_like(self.w)  # initialize the gradient as zero
+        gradient = np.zeros_like(self.w)  # initialize the gradient as zero
         loss = 0
-        # Compute loss and gradient. Your code should not contain python loops.
+        # get number of data samples and number of features
+        num_of_data, num_of_features = X_batch.shape
 
+        # get scores for each data sample
+        scores = X_batch.dot(self.w)
+
+        # calculate probability using sigmoid func
+        probabilities = 1.0 / (1.0 + np.exp(-scores))
+
+        # Compute loss and gradient. Your code should not contain python loops.
+        loss = -np.sum(y_batch * np.log(probabilities) + (1 - y_batch) * np.log(1 - probabilities)) / num_of_data
+        diff_scores = probabilities - y_batch
+        gradient += X_batch.T.dot(diff_scores) / num_of_data
 
         # Right now the loss is a sum over all training examples, but we want it
         # to be an average instead so we divide by num_train.
         # Note that the same thing must be done with gradient.
-
-
         # Add regularization to the loss and gradient.
         # Note that you have to exclude bias term in regularization.
+        loss += reg * np.sum(self.w[:-1]**2)
+        gradient[:-1] += 2 * reg * self.w[:-1]
 
-
-        return loss, dw
+        return loss, gradient
 
     @staticmethod
     def append_biases(X):
