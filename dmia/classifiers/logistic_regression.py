@@ -92,8 +92,7 @@ class LogisticRegression:
         # Implement this method. Store the probabilities of classes in y_proba.   #
         # Hint: It might be helpful to use np.vstack and np.sum                   #
         ###########################################################################
-        scores = X.dot(self.w)
-        probability_class_1 = 1.0 / (1.0 + np.exp(-scores))
+        probability_class_1 = self.get_probability(X)
         probability_class_0 = 1 - probability_class_1
 
         # transposing probabilities
@@ -146,10 +145,8 @@ class LogisticRegression:
         num_of_data, num_of_features = X_batch.shape
 
         # get scores for each data sample
-        scores = X_batch.dot(self.w)
-
         # calculate probability using sigmoid func
-        probabilities = 1.0 / (1.0 + np.exp(-scores))
+        probabilities = self.get_probability(X_batch)
 
         # Compute loss and gradient. Your code should not contain python loops.
         loss = -np.sum(y_batch * np.log(probabilities) + (1 - y_batch) * np.log(1 - probabilities)) / num_of_data
@@ -169,3 +166,8 @@ class LogisticRegression:
     @staticmethod
     def append_biases(X):
         return sparse.hstack((X, np.ones(X.shape[0])[:, np.newaxis])).tocsr()
+
+    def get_probability(self, X_ndarray):
+        scores = X_ndarray.dot(self.w)
+        probability = 1.0 / (1.0 + np.exp(-scores))
+        return probability
